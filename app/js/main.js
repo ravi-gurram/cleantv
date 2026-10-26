@@ -121,21 +121,36 @@
     }
     rows.push(dock);
 
-    // grid
+    buildGrid(CLEANTV_GRID);
+  }
+
+  var PALETTE = [
+    ['#5e5ce6', '#2b2a7a'], ['#30b0c7', '#11505c'], ['#ff9f0a', '#8a4b00'], ['#bf5af2', '#55207a'],
+    ['#64d2ff', '#1b5f80'], ['#ff6482', '#8a1f36'], ['#32d74b', '#11602a'], ['#8e8e93', '#38383c']
+  ];
+  function colorsFor(name) {
+    var h = 0;
+    for (var i = 0; i < name.length; i++) { h = (h * 31 + name.charCodeAt(i)) % 9973; }
+    return PALETTE[h % PALETTE.length];
+  }
+
+  // (Re)build the "More apps" grid. rows[0] = pills, rows[1] = dock, rows[2..] = grid rows.
+  function buildGrid(list) {
     var gridBox = $('grid');
-    if (CLEANTV_GRID.length) {
-      var title = document.createElement('div');
-      title.className = 'grid-title';
-      title.textContent = 'More apps';
-      gridBox.appendChild(title);
-    }
-    for (i = 0; i < CLEANTV_GRID.length; i += PER_ROW) {
-      rowEl = document.createElement('div');
+    gridBox.innerHTML = '';
+    rows.length = 2;
+    if (!list.length) { return; }
+    var title = document.createElement('div');
+    title.className = 'grid-title';
+    title.textContent = 'More apps';
+    gridBox.appendChild(title);
+    for (var i = 0; i < list.length; i += PER_ROW) {
+      var rowEl = document.createElement('div');
       rowEl.className = 'grid-row';
       var row = [];
-      var slice = CLEANTV_GRID.slice(i, i + PER_ROW);
+      var slice = list.slice(i, i + PER_ROW);
       for (var j = 0; j < slice.length; j++) {
-        cell = makeTile(slice[j]);
+        var cell = makeTile(slice[j]);
         rowEl.appendChild(cell);
         row.push(entry(slice[j], cell));
       }
@@ -148,6 +163,42 @@
       gridBox.appendChild(rowEl);
       rows.push(row);
     }
+  }
+
+  // Store apps have IDs like "AbCdEf1234.Name"; built-in Samsung apps and services don't.
+  function looksLikeUserApp(app) {
+    if (app.show === false || !app.name) { return false; }
+    if (!/^[A-Za-z0-9]{10}\./.test(app.id)) { return false; }
+    for (var i = 0; i < CLEANTV_HIDE.length; i++) { if (CLEANTV_HIDE[i].test(app.name)) { return false; } }
+    return true;
+  }
+
+  function addInstalledApps() {
+    if (!CLEANTV_AUTO_APPS) { return; }
+    getJSON('/apps', function (err, data) {
+      if (err || !data || !data.apps) { return; }
+      var known = {}, names = {}, i, k, list = [];
+      var fixed = CLEANTV_DOCK.concat(CLEANTV_GRID);
+      for (i = 0; i < fixed.length; i++) {
+        names[fixed[i].label.toLowerCase()] = true;
+        for (k = 0; k < fixed[i].ids.length; k++) { known[fixed[i].ids[k]] = true; }
+      }
+      var extra = [];
+      for (i = 0; i < data.apps.length; i++) {
+        var a = data.apps[i];
+        if (known[a.id] || !looksLikeUserApp(a)) { continue; }
+        var name = CLEANTV_RENAME[a.name] || a.name;
+        if (names[name.toLowerCase()]) { continue; }
+        names[name.toLowerCase()] = true;
+        extra.push({ label: name, colors: colorsFor(name), ids: [a.id] });
+      }
+      if (!extra.length) { return; }
+      extra.sort(function (x, y) { return x.label.toLowerCase() < y.label.toLowerCase() ? -1 : 1; });
+      list = CLEANTV_GRID.concat(extra);
+      var keepRow = focus.row, keepCol = focus.col;
+      buildGrid(list);
+      setFocus(Math.min(keepRow, rows.length - 1), keepCol);
+    });
   }
 
   // ---------- glass highlight ----------
@@ -257,8 +308,38 @@
     attempt();
   }
 
+  // ---------- clock screensaver ----------
+  var idleTimer = null, driftTimer = null, saverOn = false;
+  function driftSaver() {
+    var x = 80 + Math.floor(Math.random() * (1920 - 640 - 160));
+    var y = 80 + Math.floor(Math.random() * (1080 - 260 - 160));
+    var t = 'translate(' + x + 'px,' + y + 'px)';
+    $('saverClock').style.webkitTransform = t;
+    $('saverClock').style.transform = t;
+    $('saverTime').textContent = $('time').textContent;
+    $('saverDate').textContent = $('date').textContent;
+  }
+  function showSaver() {
+    saverOn = true;
+    driftSaver();
+    $('saver').className = 'on';
+    driftTimer = setInterval(driftSaver, 10000);
+  }
+  function hideSaver() {
+    saverOn = false;
+    $('saver').className = '';
+    if (driftTimer) { clearInterval(driftTimer); driftTimer = null; }
+  }
+  function resetIdle() {
+    if (idleTimer) { clearTimeout(idleTimer); }
+    var mins = typeof CLEANTV_SCREENSAVER_MINUTES === 'number' ? CLEANTV_SCREENSAVER_MINUTES : 0;
+    if (mins > 0) { idleTimer = setTimeout(showSaver, mins * 60000); }
+  }
+
   // ---------- keys ----------
   function onKey(e) {
+    resetIdle();
+    if (saverOn) { hideSaver(); e.preventDefault(); return; }   // first press only wakes the screen
     var k = e.keyCode, r = focus.row, c = focus.col;
     if (k === KEY.LEFT) { setFocus(r, c - 1); }
     else if (k === KEY.RIGHT) { setFocus(r, c + 1); }
@@ -279,7 +360,13 @@
     tick();
     setInterval(tick, 10000);
     document.addEventListener('keydown', onKey);
+    // Coming back from another app counts as activity.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) { hideSaver(); resetIdle(); tick(); addInstalledApps(); }
+    });
     setFocus(1, 0);
+    resetIdle();
+    addInstalledApps();
   }
 
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); }

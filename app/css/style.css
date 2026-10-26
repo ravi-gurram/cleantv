@@ -146,3 +146,18 @@ html, body {
   opacity: 0; -webkit-transition: opacity 200ms; transition: opacity 200ms;
 }
 .toast.show { opacity: 1; }
+
+/* Clock screensaver: a thin clock drifting slowly over black. */
+#saver {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 50;
+  background: #000; opacity: 0; visibility: hidden;
+  -webkit-transition: opacity 1200ms ease, visibility 0s linear 1200ms;
+  transition: opacity 1200ms ease, visibility 0s linear 1200ms;
+}
+#saver.on { opacity: 1; visibility: visible; -webkit-transition: opacity 1200ms ease; transition: opacity 1200ms ease; }
+#saverClock {
+  position: absolute; left: 0; top: 0; text-align: center; width: 640px;
+  -webkit-transition: -webkit-transform 9000ms ease-in-out; transition: transform 9000ms ease-in-out;
+}
+#saverTime { font-size: 150px; font-weight: 100; letter-spacing: -4px; color: rgba(255,255,255,0.88); }
+#saverDate { font-size: 30px; font-weight: 300; color: rgba(255,255,255,0.5); margin-top: 6px; }
