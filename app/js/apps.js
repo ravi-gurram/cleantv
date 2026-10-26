@@ -18,11 +18,25 @@ var CLEANTV_GRID = [
   { label: 'Peacock',      colors: ['#2b2b2f', '#0d0d10'], ids: ['gzcc4LRFBF.Peacock'] },
   { label: 'YouTube TV',   colors: ['#ff453a', '#7a0d07'], ids: ['com.samsung.tv.cobalt-yttv'] },
   { label: 'YouTube Kids', colors: ['#ff6b5e', '#b0261b'], ids: ['com.samsung.tv.cobalt-ytkids'] },
-  { label: 'Internet',     colors: ['#30b0c7', '#11505c'], ids: ['org.tizen.browser'] },
-  { label: 'Gallery',      colors: ['#ff9f0a', '#8a4b00'], ids: ['com.samsung.tv.mycontents'] }
+  { label: 'Internet',     colors: ['#30b0c7', '#11505c'], ids: ['org.tizen.browser'] }
 ];
+
+/* Also add the TV's other installed apps to "More apps" (store apps only; system services hidden). */
+var CLEANTV_AUTO_APPS = true;
+
+/* Installed apps whose names match any of these never appear. Add a name here to hide an app. */
+var CLEANTV_HIDE = [
+  /service/i, /extension/i, /cmswebapp/i, /tizenbrew/i, /cleantv/i, /epop/i, /launcher/i,
+  /e-?manual/i, /airplay/i, /smart\s*stb/i, /test/i, /^app$/i, /samsung\s*tv\s*plus/i, /gallery|mycontents/i
+];
+
+/* Friendlier names for apps whose installed names are odd. */
+var CLEANTV_RENAME = { 'YoutubeKids': 'YouTube Kids', 'YoutubeTV': 'YouTube TV', 'Peacock TV': 'Peacock' };
 
 /* Small buttons at the top right (press Up from the dock). */
 var CLEANTV_PILLS = [
   { label: 'Inputs', icon: 'inputs', colors: ['#8e8e93'], ids: ['org.tizen.SMSourceAPP'] }
 ];
+
+/* Clock screensaver: minutes of no remote activity on CleanTV before it appears (0 = off). */
+var CLEANTV_SCREENSAVER_MINUTES = 5;
