@@ -2,10 +2,13 @@
 
 A clean, ad-free home screen for Samsung Tizen TVs, packaged as a [TizenBrew](https://github.com/reisxd/TizenBrew) app module.
 
-- Pure black home screen with a soft glow in the selected app's colour.
+- Glass look: deep-navy background, a glass dock, and a floating glass highlight
+  (translucent fill, bright top sheen, crisp rim tinted to the app, faint glow) that
+  glides between tiles. Drawn without blur, so it runs on 2018 Tizen TVs.
+- A "horizon" glow in the selected app's colour rises behind the dock.
 - Greeting, thin clock and date; the selected app's name in large type.
-- Favourites in a rounded dock; a short "More apps" grid slides up when you press Down.
-- Live TV and Inputs buttons at the top right (press Up from the dock).
+- A short "More apps" grid slides up when you press Down.
+- Icon-only Inputs button at the top right (press Up from the dock).
 - Navigate with the remote's arrows and OK. Back jumps to the first dock tile.
 
 Built for a 2018 Samsung UN50NU6900 (Tizen 4). The app IDs in `app/js/apps.js` were read from that TV.

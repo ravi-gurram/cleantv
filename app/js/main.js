@@ -28,6 +28,12 @@
     toastTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
   }
 
+  // Simple line icons for the top-right buttons (original drawings).
+  var ICONS = {
+    inputs: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+            '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 9l3 2-3 2"/></svg>'
+  };
+
   // ---------- clock ----------
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
@@ -48,8 +54,9 @@
     var next = bgFront === 'A' ? 'B' : 'A';
     var el = $('bg' + next);
     el.style.background =
-      'radial-gradient(ellipse 1300px 760px at 30% 38%, ' + color + ' 0%, rgba(0,0,0,0) 72%), ' +
-      'radial-gradient(ellipse 900px 600px at 85% 10%, ' + color + ' 0%, rgba(0,0,0,0) 75%), #000';
+      'radial-gradient(ellipse 1500px 520px at 50% 108%, ' + color + ' 0%, rgba(0,0,0,0) 70%), ' +
+      'radial-gradient(ellipse 1100px 420px at 50% 72%, ' + color + ' 0%, rgba(0,0,0,0) 72%)';
+    el.style.opacity = '';
     el.style.opacity = '';
     el.className = 'bg on';
     $('bg' + bgFront).className = 'bg';
@@ -92,7 +99,8 @@
     for (i = 0; i < CLEANTV_PILLS.length; i++) {
       pill = document.createElement('div');
       pill.className = 'pill';
-      pill.textContent = CLEANTV_PILLS[i].label;
+      pill.innerHTML = ICONS[CLEANTV_PILLS[i].icon] || '';
+      if (!pill.innerHTML) { pill.textContent = CLEANTV_PILLS[i].label.charAt(0); }
       pillsBox.appendChild(pill);
       pills.push(entry(CLEANTV_PILLS[i], pill));
     }
@@ -100,6 +108,9 @@
 
     // dock
     var dockBox = $('dock');
+    var sheen = document.createElement('div');
+    sheen.className = 'dock-sheen';
+    dockBox.appendChild(sheen);
     var dock = [];
     for (i = 0; i < CLEANTV_DOCK.length; i++) {
       cell = makeTile(CLEANTV_DOCK[i]);
@@ -139,6 +150,40 @@
     }
   }
 
+  // ---------- glass highlight ----------
+  // Offset of el relative to #stage (layout position, ignoring transforms).
+  function offsetToStage(el) {
+    var x = 0, y = 0, stage = $('stage');
+    while (el && el !== stage) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; }
+    return { x: x, y: y };
+  }
+
+  // The app colour lifted toward white, for the glass rim: (c + 510) / 3 per channel.
+  function rimColor(hex, alpha) {
+    var h = hex.replace('#', '');
+    if (h.length === 3) { h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2); }
+    var r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+    function lift(c) { return Math.round((c + 510) / 3); }
+    return 'rgba(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ',' + alpha + ')';
+  }
+
+  function moveGlass(item, isPill) {
+    var glass = $('glass');
+    var target = isPill ? item.el : item.el.firstChild;   // the pill, or the tile inside the cell
+    var o = offsetToStage(target);
+    var pad = isPill ? 4 : 16;
+    var w = target.offsetWidth + pad * 2, h = target.offsetHeight + pad * 2;
+    var t = 'translate(' + (o.x - pad) + 'px,' + (o.y - pad) + 'px)';
+    glass.style.webkitTransform = t;
+    glass.style.transform = t;
+    glass.style.width = w + 'px';
+    glass.style.height = h + 'px';
+    glass.style.borderRadius = isPill ? (h / 2) + 'px' : '40px';
+    glass.style.borderColor = rimColor(item.colors[0], 0.9);
+    glass.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.05), 0 0 30px ' + rimColor(item.colors[0], 0.44);
+    if (glass.className === 'instant') { setTimeout(function () { glass.className = ''; }, 50); }
+  }
+
   // ---------- focus ----------
   function current() { var r = rows[focus.row]; return r ? r[focus.col] : null; }
 
@@ -152,6 +197,7 @@
     var item = current();
     item.el.className += ' focused';
 
+    moveGlass(item, row === 0);
     $('heroTitle').textContent = item.label;
     $('heroSub').textContent = 'Press OK to open';
     tint(item.colors[0]);

@@ -4,12 +4,18 @@ html, body {
   margin: 0; padding: 0;
   width: 1920px; height: 1080px;
   overflow: hidden;
-  background: #000;
+  background: #090c14;
   color: #f5f5f7;
   font-family: "SamsungOne", "TizenSans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-#root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+#root {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background:
+    radial-gradient(ellipse 1400px 700px at 75% -10%, rgba(52,70,140,0.38) 0%, rgba(9,12,20,0) 70%),
+    radial-gradient(ellipse 1000px 600px at 0% 30%, rgba(30,40,90,0.30) 0%, rgba(9,12,20,0) 70%),
+    linear-gradient(180deg, #0d1222 0%, #090c14 55%, #06080e 100%);
+}
 
 /* Ambient glow in the focused app's colour (two layers cross-fade). */
 .bg {
@@ -17,7 +23,7 @@ html, body {
   opacity: 0;
   -webkit-transition: opacity 700ms ease; transition: opacity 700ms ease;
 }
-.bg.on { opacity: 1; }
+.bg.on { opacity: 0.55; }
 
 /* Everything that scrolls when browsing the grid. */
 #stage {
@@ -34,12 +40,15 @@ html, body {
 
 .pills { display: flex; margin-top: 6px; }
 .pill {
-  margin-left: 18px; padding: 14px 28px; border-radius: 40px;
-  font-size: 24px; font-weight: 500; color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.10); border: 1.5px solid rgba(255,255,255,0.14);
-  -webkit-transition: -webkit-transform 200ms, background 200ms; transition: transform 200ms, background 200ms;
+  position: relative; z-index: 2;
+  margin-left: 18px; width: 72px; height: 72px; border-radius: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 100%);
+  border: 2px solid rgba(255,255,255,0.22);
+  -webkit-transition: border-color 220ms; transition: border-color 220ms;
 }
-.pill.focused { background: rgba(255,255,255,0.92); color: #111; -webkit-transform: scale(1.08); transform: scale(1.08); }
+.pill svg { width: 34px; height: 34px; }
+.pill.focused { border-color: rgba(255,255,255,0); }
 
 /* Top shelf: the focused app's name, big */
 .hero { position: absolute; left: 110px; top: 360px; width: 1500px;
@@ -56,10 +65,16 @@ html, body {
 .dock-wrap { position: absolute; left: 80px; right: 80px; top: 620px; }
 .dock {
   display: flex; justify-content: space-between;
-  padding: 34px 36px 26px;
-  border-radius: 46px;
-  background: rgba(255,255,255,0.07);
-  border: 1.5px solid rgba(255,255,255,0.10);
+  padding: 34px 36px 22px;
+  position: relative; overflow: hidden;
+  border-radius: 40px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 100%);
+  border: 2px solid rgba(255,255,255,0.22);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+}
+.dock .dock-sheen {
+  position: absolute; left: 0; right: 0; top: 0; height: 45%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
 }
 
 /* Grid below the dock, revealed when pressing Down */
@@ -69,14 +84,14 @@ html, body {
 .grid-row .spacer { width: 236px; }
 
 /* Tiles */
-.cell { width: 236px; flex: 0 0 auto; }
+.cell { position: relative; z-index: 2; width: 236px; flex: 0 0 auto; }
 .tile {
   position: relative; width: 236px; height: 142px;
   border-radius: 24px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 8px 22px rgba(0,0,0,0.5);
-  -webkit-transition: -webkit-transform 260ms cubic-bezier(.2,1.4,.4,1), box-shadow 260ms;
-  transition: transform 260ms cubic-bezier(.2,1.4,.4,1), box-shadow 260ms;
+  -webkit-transition: -webkit-transform 260ms cubic-bezier(.2,.8,.2,1), box-shadow 260ms;
+  transition: transform 260ms cubic-bezier(.2,.8,.2,1), box-shadow 260ms;
 }
 .tile .word {
   position: relative; z-index: 2;
@@ -92,18 +107,36 @@ html, body {
   -webkit-transition: -webkit-transform 700ms ease, opacity 300ms; transition: transform 700ms ease, opacity 300ms;
 }
 .label {
-  margin-top: 16px; height: 28px; text-align: center;
+  margin-top: 26px; height: 28px; text-align: center;
   font-size: 22px; font-weight: 500; color: rgba(255,255,255,0);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   -webkit-transition: color 200ms; transition: color 200ms;
 }
 .cell.focused .tile {
-  -webkit-transform: translateY(-14px) scale(1.15);
-  transform: translateY(-14px) scale(1.15);
-  box-shadow: 0 36px 60px rgba(0,0,0,0.7), 0 0 0 3px rgba(255,255,255,0.85);
+  -webkit-transform: translateY(-6px) scale(1.06);
+  transform: translateY(-6px) scale(1.06);
+  box-shadow: 0 30px 50px rgba(0,0,0,0.65);
 }
 .cell.focused .tile .gloss { opacity: 1; -webkit-transform: translate(18%, 30%); transform: translate(18%, 30%); }
 .cell.focused .label { color: rgba(255,255,255,0.95); }
+
+/* Floating glass highlight: translucent white slab, bright top sheen, crisp rim,
+   faint outer glow. One element, sprung between targets. No blur needed. */
+#glass {
+  position: absolute; z-index: 1; left: 0; top: 0; width: 100px; height: 100px;
+  border-radius: 40px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.07) 100%);
+  border: 3px solid rgba(255,255,255,0.80);
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.06), 0 0 26px rgba(255,255,255,0.19);
+  overflow: hidden;
+  -webkit-transition: -webkit-transform 420ms cubic-bezier(.2,.8,.2,1), width 420ms cubic-bezier(.2,.8,.2,1), height 420ms cubic-bezier(.2,.8,.2,1), border-radius 300ms, border-color 300ms, box-shadow 300ms;
+  transition: transform 420ms cubic-bezier(.2,.8,.2,1), width 420ms cubic-bezier(.2,.8,.2,1), height 420ms cubic-bezier(.2,.8,.2,1), border-radius 300ms, border-color 300ms, box-shadow 300ms;
+}
+#glass .sheen {
+  position: absolute; left: 0; top: 0; right: 0; height: 45%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0) 100%);
+}
+#glass.instant { -webkit-transition: none; transition: none; }
 
 /* Toast */
 .toast {

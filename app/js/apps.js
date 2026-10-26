@@ -18,13 +18,11 @@ var CLEANTV_GRID = [
   { label: 'Peacock',      colors: ['#2b2b2f', '#0d0d10'], ids: ['gzcc4LRFBF.Peacock'] },
   { label: 'YouTube TV',   colors: ['#ff453a', '#7a0d07'], ids: ['com.samsung.tv.cobalt-yttv'] },
   { label: 'YouTube Kids', colors: ['#ff6b5e', '#b0261b'], ids: ['com.samsung.tv.cobalt-ytkids'] },
-  { label: 'Live TV',      colors: ['#5e5ce6', '#2b2a7a'], ids: ['org.tizen.tv-viewer'] },
   { label: 'Internet',     colors: ['#30b0c7', '#11505c'], ids: ['org.tizen.browser'] },
   { label: 'Gallery',      colors: ['#ff9f0a', '#8a4b00'], ids: ['com.samsung.tv.mycontents'] }
 ];
 
 /* Small buttons at the top right (press Up from the dock). */
 var CLEANTV_PILLS = [
-  { label: 'Live TV', colors: ['#5e5ce6'], ids: ['org.tizen.tv-viewer'] },
-  { label: 'Inputs',  colors: ['#8e8e93'], ids: ['org.tizen.SMSourceAPP'] }
+  { label: 'Inputs', icon: 'inputs', colors: ['#8e8e93'], ids: ['org.tizen.SMSourceAPP'] }
 ];
