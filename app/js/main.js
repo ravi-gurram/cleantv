@@ -1,7 +1,6 @@
-/* CleanTV launcher — ES5 only (Tizen 4 / 2018 Samsung TVs), running as a TizenBrew module.
- * Layout: greeting + clock, top-right pills, big title of the focused app, a dock of
- * favourites, and a grid below that slides up when you press Down.
- * App launching goes through service.js (TizenBrew's Node service) on localhost:8095.
+/* CleanTV cinematic launcher — ES5 for Tizen 4 / 2018 Samsung TVs.
+ * Bundled scenery crossfades behind a six-app dock; Down opens More apps.
+ * Device actions go through service.js on localhost:8095.
  */
 (function () {
   'use strict';
@@ -14,7 +13,6 @@
   var rows = [];
   var focus = { row: 1, col: 0 };
   var bgFront = 'A';
-  var lastTint = '';
   var toastTimer = null;
 
   function $(id) { return document.getElementById(id); }
@@ -28,11 +26,7 @@
     toastTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
   }
 
-  // Simple line icons for the top-right buttons (original drawings).
-  var ICONS = {
-    inputs: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-            '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M10 9l3 2-3 2"/></svg>'
-  };
+  var ICONS = { inputs: '<img src="assets/logos/inputs.svg" alt="">' };
 
   // ---------- clock ----------
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -43,24 +37,33 @@
     var h = d.getHours();
     var h12 = h % 12 === 0 ? 12 : h % 12;
     $('time').textContent = h12 + ':' + pad(d.getMinutes());
+    $('headerTime').textContent = $('time').textContent;
     $('date').textContent = DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
     $('greeting').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   }
 
   // ---------- ambient glow ----------
-  function tint(color) {
-    if (color === lastTint) { return; }
-    lastTint = color;
-    var next = bgFront === 'A' ? 'B' : 'A';
-    var el = $('bg' + next);
-    el.style.background =
-      'radial-gradient(ellipse 1500px 520px at 50% 108%, ' + color + ' 0%, rgba(0,0,0,0) 70%), ' +
-      'radial-gradient(ellipse 1100px 420px at 50% 72%, ' + color + ' 0%, rgba(0,0,0,0) 72%)';
-    el.style.opacity = '';
-    el.style.opacity = '';
-    el.className = 'bg on';
-    $('bg' + bgFront).className = 'bg';
-    bgFront = next;
+  var sceneIndex = 0, sceneBusy = false;
+  function nextScene() {
+    if (document.hidden || saverOn || sceneBusy || typeof CLEANTV_BACKGROUNDS === 'undefined' || CLEANTV_BACKGROUNDS.length < 2) { return; }
+    var nextIndex = (sceneIndex + 1) % CLEANTV_BACKGROUNDS.length;
+    var image = new Image();
+    sceneBusy = true;
+    image.onload = function () {
+      var next = bgFront === 'A' ? 'B' : 'A';
+      $('bg' + next).src = CLEANTV_BACKGROUNDS[nextIndex];
+      $('bg' + next).className = 'bg on';
+      $('bg' + bgFront).className = 'bg';
+      bgFront = next; sceneIndex = nextIndex; sceneBusy = false;
+    };
+    image.onerror = function () { sceneBusy = false; };
+    image.src = CLEANTV_BACKGROUNDS[nextIndex];
+  }
+  function fitScreen() {
+    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var t = 'translate(-50%, -50%) scale(' + scale + ')';
+    $('root').style.webkitTransform = t;
+    $('root').style.transform = t;
   }
 
   // ---------- building ----------
@@ -69,7 +72,8 @@
     cell.className = 'cell';
     var tile = document.createElement('div');
     tile.className = 'tile';
-    tile.style.background = 'linear-gradient(135deg, ' + item.colors[0] + ' 0%, ' + (item.colors[1] || item.colors[0]) + ' 100%)';
+    var fields = { YouTube: '#fafafa', Netflix: '#070707', 'Prime Video': '#0089e9', 'Apple TV': '#101010', 'Disney+': '#071844', Hulu: '#031d18' };
+    tile.style.background = fields[item.label] || item.colors[0];
     var gloss = document.createElement('div');
     gloss.className = 'gloss';
     var word = document.createElement('div');
@@ -77,17 +81,28 @@
     word.textContent = item.label;
     if (item.text) { word.style.color = item.text; }
     tile.appendChild(gloss);
+    if (item.logo) {
+      var logo = document.createElement('img');
+      logo.className = 'app-logo logo-' + item.label.toLowerCase().replace(/[^a-z]/g, '');
+      logo.src = item.logo; logo.alt = item.label;
+      logo.onerror = function () { logo.style.display = 'none'; word.style.display = 'block'; };
+      word.style.display = 'none';
+      tile.appendChild(logo);
+    }
     tile.appendChild(word);
     var label = document.createElement('div');
     label.className = 'label';
     label.textContent = item.label;
     cell.appendChild(tile);
     cell.appendChild(label);
+    cell.onclick = function () { selectElement(cell); };
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('aria-label', item.label);
     return cell;
   }
 
   function entry(src, el) {
-    return { label: src.label, colors: src.colors, ids: src.ids.slice(0), el: el };
+    return { label: src.label, colors: src.colors, action: src.action, ids: src.ids.slice(0), el: el };
   }
 
   function build() {
@@ -99,6 +114,9 @@
     for (i = 0; i < CLEANTV_PILLS.length; i++) {
       pill = document.createElement('div');
       pill.className = 'pill';
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('aria-label', CLEANTV_PILLS[i].label);
+      pill.onclick = function () { selectElement(this); };
       pill.innerHTML = ICONS[CLEANTV_PILLS[i].icon] || '';
       if (!pill.innerHTML) { pill.textContent = CLEANTV_PILLS[i].label.charAt(0); }
       pillsBox.appendChild(pill);
@@ -201,41 +219,17 @@
     });
   }
 
-  // ---------- glass highlight ----------
-  // Offset of el relative to #stage (layout position, ignoring transforms).
-  function offsetToStage(el) {
-    var x = 0, y = 0, stage = $('stage');
-    while (el && el !== stage) { x += el.offsetLeft; y += el.offsetTop; el = el.offsetParent; }
-    return { x: x, y: y };
-  }
-
-  // The app colour lifted toward white, for the glass rim: (c + 510) / 3 per channel.
-  function rimColor(hex, alpha) {
-    var h = hex.replace('#', '');
-    if (h.length === 3) { h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2); }
-    var r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
-    function lift(c) { return Math.round((c + 510) / 3); }
-    return 'rgba(' + lift(r) + ',' + lift(g) + ',' + lift(b) + ',' + alpha + ')';
-  }
-
-  function moveGlass(item, isPill) {
-    var glass = $('glass');
-    var target = isPill ? item.el : item.el.firstChild;   // the pill, or the tile inside the cell
-    var o = offsetToStage(target);
-    var pad = isPill ? 4 : 16;
-    var w = target.offsetWidth + pad * 2, h = target.offsetHeight + pad * 2;
-    var t = 'translate(' + (o.x - pad) + 'px,' + (o.y - pad) + 'px)';
-    glass.style.webkitTransform = t;
-    glass.style.transform = t;
-    glass.style.width = w + 'px';
-    glass.style.height = h + 'px';
-    glass.style.borderRadius = isPill ? (h / 2) + 'px' : '40px';
-    glass.style.borderColor = rimColor(item.colors[0], 0.9);
-    glass.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.05), 0 0 30px ' + rimColor(item.colors[0], 0.44);
-    if (glass.className === 'instant') { setTimeout(function () { glass.className = ''; }, 50); }
-  }
-
   // ---------- focus ----------
+  function selectElement(el) {
+    resetIdle();
+    if (saverOn) { hideSaver(); return; }
+    for (var r = 0; r < rows.length; r++) {
+      for (var c = 0; c < rows[r].length; c++) {
+        if (rows[r][c].el === el) { setFocus(r, c); launch(current()); return; }
+      }
+    }
+  }
+
   function current() { var r = rows[focus.row]; return r ? r[focus.col] : null; }
 
   function setFocus(row, col) {
@@ -248,16 +242,14 @@
     var item = current();
     item.el.className += ' focused';
 
-    moveGlass(item, row === 0);
     $('heroTitle').textContent = item.label;
     $('heroSub').textContent = 'Press OK to open';
-    tint(item.colors[0]);
 
     // Grid rows slide the whole stage up; the dock and pills keep it at rest.
     $('root').className = row >= 2 ? 'browsing' : '';
     if (row >= 2) {
       var g = $('grid');
-      var shift = 520 + Math.max(0, row - 2) * 222;
+      var shift = 760 + Math.max(0, row - 2) * 244;
       g.parentNode.style.webkitTransform = 'translateY(-' + shift + 'px)';
       g.parentNode.style.transform = 'translateY(-' + shift + 'px)';
     } else {
@@ -276,6 +268,9 @@
 
   // ---------- service ----------
   function getJSON(path, done) {
+    if (/[?&]preview=1(?:&|$)/.test(window.location.search)) {
+      done('TV connection required', null); return;
+    }
     var xhr = new XMLHttpRequest();
     var finished = false;
     function finish(err, data) { if (!finished) { finished = true; done(err, data); } }
@@ -294,6 +289,8 @@
   }
 
   function launch(item) {
+    if (item.action === 'inputs') { openInputs(); return; }
+    if (/[?&]preview=1(?:&|$)/.test(window.location.search)) { toast('Preview — ' + item.label + ' opens on your TV'); return; }
     var ids = item.ids, k = 0;
     function attempt(lastErr) {
       if (k >= ids.length) {
@@ -309,6 +306,61 @@
   }
 
   // ---------- clock screensaver ----------
+  var inputOpen = false, inputBusy = false, inputIndex = 0, inputList = [], inputRequest = 0;
+  function paintInputs() {
+    var box = $('inputList');
+    box.innerHTML = '';
+    for (var i = 0; i < inputList.length; i++) {
+      var button = document.createElement('div');
+      button.className = 'input-option' + (i === inputIndex ? ' selected' : '');
+      button.textContent = inputList[i].type + (inputList[i].type === 'TV' ? '' : ' ' + inputList[i].number) +
+        (inputList[i].connected ? '' : ' — Not connected');
+      box.appendChild(button);
+      if (i === inputIndex) { button.scrollIntoView(false); }
+    }
+  }
+  function closeInputs() {
+    inputOpen = false; inputBusy = false; inputRequest++;
+    $('inputs').className = '';
+  }
+  function openInputs() {
+    inputOpen = true; inputBusy = true; inputList = []; inputIndex = 0;
+    var request = ++inputRequest;
+    $('inputs').className = 'on';
+    $('inputList').innerHTML = '';
+    $('inputHint').textContent = 'Finding inputs…';
+    getJSON('/sources', function (err, data) {
+      if (!inputOpen || request !== inputRequest) { return; }
+      inputBusy = false;
+      if (err || !data || !data.ok) {
+        $('inputHint').textContent = 'Cannot access inputs: ' + (err || 'service update required') + '. Use the remote’s Source button. Back to close.';
+        return;
+      }
+      inputList = data.sources || [];
+      $('inputHint').textContent = inputList.length ? '↑ ↓ Choose   •   OK Switch   •   Back Close' : 'No inputs reported. Use the remote’s Source button. Back to close.';
+      paintInputs();
+    });
+  }
+  function inputKey(k) {
+    if (k === KEY.BACK || k === KEY.ESC) { closeInputs(); return; }
+    if (inputBusy || !inputList.length) { return; }
+    if (k === KEY.UP || k === KEY.DOWN) {
+      inputIndex = Math.max(0, Math.min(inputList.length - 1, inputIndex + (k === KEY.UP ? -1 : 1)));
+      paintInputs();
+    } else if (k === KEY.ENTER) {
+      var s = inputList[inputIndex], request = ++inputRequest;
+      inputBusy = true;
+      $('inputHint').textContent = 'Switching input…';
+      getJSON('/source?type=' + encodeURIComponent(s.type) + '&number=' + encodeURIComponent(s.number), function (err, data) {
+        if (!inputOpen || request !== inputRequest) { return; }
+        inputBusy = false;
+        if (err || !data || !data.ok) {
+          $('inputHint').textContent = 'Could not show input. Use the remote’s Source button. Back to close.';
+        } else { closeInputs(); }
+      });
+    }
+  }
+
   var idleTimer = null, driftTimer = null, saverOn = false;
   function driftSaver() {
     var x = 80 + Math.floor(Math.random() * (1920 - 640 - 160));
@@ -357,6 +409,7 @@
     resetIdle();
     if (saverOn) { hideSaver(); e.preventDefault(); return; }   // first press only wakes the screen
     var k = e.keyCode, r = focus.row, c = focus.col;
+    if (inputOpen) { inputKey(k); e.preventDefault(); return; }
     if (k === KEY.LEFT) { setFocus(r, c - 1); }
     else if (k === KEY.RIGHT) { setFocus(r, c + 1); }
     else if (k === KEY.DOWN) { if (r + 1 < rows.length) { setFocus(r + 1, mapCol(r, r + 1, c)); } }
@@ -378,6 +431,16 @@
   }
 
   function boot() {
+    fitScreen();
+    window.addEventListener('resize', fitScreen);
+    if (typeof CLEANTV_BACKGROUNDS !== 'undefined' && CLEANTV_BACKGROUNDS.length) {
+      $('bgA').src = CLEANTV_BACKGROUNDS[0];
+    }
+    $('bgA').className = 'bg on';
+    $('moreHint').onclick = function () { resetIdle(); setFocus(2, 0); };
+    if (typeof CLEANTV_BACKGROUND_SECONDS === 'number' && CLEANTV_BACKGROUND_SECONDS > 0) {
+      setInterval(nextScene, Math.max(15, CLEANTV_BACKGROUND_SECONDS) * 1000);
+    }
     build();
     tick();
     setInterval(tick, 10000);
