@@ -87,7 +87,7 @@
   }
 
   function entry(src, el) {
-    return { label: src.label, colors: src.colors, ids: src.ids.slice(0), el: el };
+    return { label: src.label, colors: src.colors, action: src.action, ids: src.ids.slice(0), el: el };
   }
 
   function build() {
@@ -294,6 +294,7 @@
   }
 
   function launch(item) {
+    if (item.action === 'inputs') { openInputs(); return; }
     var ids = item.ids, k = 0;
     function attempt(lastErr) {
       if (k >= ids.length) {
@@ -309,6 +310,61 @@
   }
 
   // ---------- clock screensaver ----------
+  var inputOpen = false, inputBusy = false, inputIndex = 0, inputList = [], inputRequest = 0;
+  function paintInputs() {
+    var box = $('inputList');
+    box.innerHTML = '';
+    for (var i = 0; i < inputList.length; i++) {
+      var button = document.createElement('div');
+      button.className = 'input-option' + (i === inputIndex ? ' selected' : '');
+      button.textContent = inputList[i].type + (inputList[i].type === 'TV' ? '' : ' ' + inputList[i].number) +
+        (inputList[i].connected ? '' : ' — Not connected');
+      box.appendChild(button);
+      if (i === inputIndex) { button.scrollIntoView(false); }
+    }
+  }
+  function closeInputs() {
+    inputOpen = false; inputBusy = false; inputRequest++;
+    $('inputs').className = '';
+  }
+  function openInputs() {
+    inputOpen = true; inputBusy = true; inputList = []; inputIndex = 0;
+    var request = ++inputRequest;
+    $('inputs').className = 'on';
+    $('inputList').innerHTML = '';
+    $('inputHint').textContent = 'Finding inputs…';
+    getJSON('/sources', function (err, data) {
+      if (!inputOpen || request !== inputRequest) { return; }
+      inputBusy = false;
+      if (err || !data || !data.ok) {
+        $('inputHint').textContent = 'Cannot access inputs: ' + (err || 'service update required') + '. Use the remote’s Source button. Back to close.';
+        return;
+      }
+      inputList = data.sources || [];
+      $('inputHint').textContent = inputList.length ? '↑ ↓ Choose   •   OK Switch   •   Back Close' : 'No inputs reported. Use the remote’s Source button. Back to close.';
+      paintInputs();
+    });
+  }
+  function inputKey(k) {
+    if (k === KEY.BACK || k === KEY.ESC) { closeInputs(); return; }
+    if (inputBusy || !inputList.length) { return; }
+    if (k === KEY.UP || k === KEY.DOWN) {
+      inputIndex = Math.max(0, Math.min(inputList.length - 1, inputIndex + (k === KEY.UP ? -1 : 1)));
+      paintInputs();
+    } else if (k === KEY.ENTER) {
+      var s = inputList[inputIndex], request = ++inputRequest;
+      inputBusy = true;
+      $('inputHint').textContent = 'Switching input…';
+      getJSON('/source?type=' + encodeURIComponent(s.type) + '&number=' + encodeURIComponent(s.number), function (err, data) {
+        if (!inputOpen || request !== inputRequest) { return; }
+        inputBusy = false;
+        if (err || !data || !data.ok) {
+          $('inputHint').textContent = 'Could not show input. Use the remote’s Source button. Back to close.';
+        } else { closeInputs(); }
+      });
+    }
+  }
+
   var idleTimer = null, driftTimer = null, saverOn = false;
   function driftSaver() {
     var x = 80 + Math.floor(Math.random() * (1920 - 640 - 160));
@@ -357,6 +413,7 @@
     resetIdle();
     if (saverOn) { hideSaver(); e.preventDefault(); return; }   // first press only wakes the screen
     var k = e.keyCode, r = focus.row, c = focus.col;
+    if (inputOpen) { inputKey(k); e.preventDefault(); return; }
     if (k === KEY.LEFT) { setFocus(r, c - 1); }
     else if (k === KEY.RIGHT) { setFocus(r, c + 1); }
     else if (k === KEY.DOWN) { if (r + 1 < rows.length) { setFocus(r + 1, mapCol(r, r + 1, c)); } }
@@ -394,3 +451,4 @@
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); }
   else { boot(); }
 })();
+
