@@ -1,0 +1,6 @@
+.claude/
+.DS_Store
+.vscode/
+Debug/
+.tizen-rds/
+*.wgt
