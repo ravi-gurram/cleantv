@@ -11,14 +11,14 @@ A clean, ad-free home screen for Samsung Tizen TVs, packaged as a [TizenBrew](ht
   apps installed on the TV (system services are filtered out).
 - Clock screensaver after 5 idle minutes: a thin clock drifting over black.
 - Icon-only Inputs button at the top right (press Up from the dock).
-- Navigate with the remote's arrows and OK. Back jumps to the first dock tile.
+- Navigate with the remote's arrows and OK. Back jumps to the first dock tile; Back twice more leaves CleanTV for Samsung's home screen.
 
 Built for a 2018 Samsung UN50NU6900 (Tizen 4). The app IDs in `app/js/apps.js` were read from that TV.
 
 ## Install on the TV
 
 1. Install TizenBrew on the TV (TizenBrew Installer).
-2. Open TizenBrew → **Module Manager** → add a **GitHub** module: `ravi-gurram/cleantv@v1.2.0`
+2. Open TizenBrew → **Module Manager** → add a **GitHub** module: `ravi-gurram/cleantv@v1.2.1`
 3. Open **CleanTV** from TizenBrew.
 4. Optional: TizenBrew **Settings → Autolaunch → CleanTV**, so TizenBrew opens straight into it.
 

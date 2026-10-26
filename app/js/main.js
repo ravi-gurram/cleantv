@@ -336,6 +336,22 @@
     if (mins > 0) { idleTimer = setTimeout(showSaver, mins * 60000); }
   }
 
+  // ---------- leaving CleanTV ----------
+  // The page can't close the app itself (no tizen API in TizenBrew modules), so ask the
+  // service to open Samsung's home screen; CleanTV then sits in the background like any app.
+  var lastBack = 0;
+  function exitCleanTV() {
+    var ids = (typeof CLEANTV_EXIT_TO !== 'undefined' && CLEANTV_EXIT_TO.length) ? CLEANTV_EXIT_TO : ['com.samsung.tv.csfs'];
+    var k = 0;
+    function attempt() {
+      if (k >= ids.length) { toast('Couldn\u2019t leave CleanTV \u2014 press the Home button'); return; }
+      getJSON('/launch?id=' + encodeURIComponent(ids[k++]), function (err, data) {
+        if (err || !data || !data.ok) { attempt(); }
+      });
+    }
+    attempt();
+  }
+
   // ---------- keys ----------
   function onKey(e) {
     resetIdle();
@@ -347,9 +363,15 @@
     else if (k === KEY.UP) { if (r > 0) { setFocus(r - 1, mapCol(r, r - 1, c)); } }
     else if (k === KEY.ENTER) { if (current()) { launch(current()); } }
     else if (k === KEY.BACK || k === KEY.ESC) {
-      // Back returns to the first dock tile; Back from there is left to TizenBrew.
-      if (r === 1 && c === 0) { return; }
-      setFocus(1, 0);
+      // Back returns to the first dock tile; from there, Back twice (within 2 s) leaves CleanTV.
+      if (r === 1 && c === 0) {
+        var now = new Date().getTime();
+        if (now - lastBack < 2000) { lastBack = 0; exitCleanTV(); }
+        else { lastBack = now; toast('Press Back again to exit'); }
+      } else {
+        lastBack = 0;
+        setFocus(1, 0);
+      }
     }
     else { return; }
     e.preventDefault();

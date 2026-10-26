@@ -38,5 +38,8 @@ var CLEANTV_PILLS = [
   { label: 'Inputs', icon: 'inputs', colors: ['#8e8e93'], ids: ['org.tizen.SMSourceAPP'] }
 ];
 
+/* Where Back goes when you leave CleanTV: Samsung's home screen (Smart Hub). IDs tried in order. */
+var CLEANTV_EXIT_TO = ['com.samsung.tv.csfs', 'org.tizen.tv-viewer'];
+
 /* Clock screensaver: minutes of no remote activity on CleanTV before it appears (0 = off). */
 var CLEANTV_SCREENSAVER_MINUTES = 5;
