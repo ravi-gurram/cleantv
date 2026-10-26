@@ -40,3 +40,15 @@ apps automatically), `CLEANTV_HIDE` (names to hide), and `CLEANTV_SCREENSAVER_MI
 ## Licence
 
 MIT
+
+## Cinematic home (1.3.0)
+
+Six favourites use bundled brand artwork. Landscape backgrounds are bundled with the module and crossfade every 60 seconds; no remote image service or video stream is needed. Edit `CLEANTV_BACKGROUNDS` and `CLEANTV_BACKGROUND_SECONDS` in `app/js/apps.js` to change them (0 pauses rotation). Rotation pauses while the launcher is hidden or its clock screensaver is active.
+
+Remote controls: Left/Right choose an app, OK opens it, Down opens More apps, Up from the favourites opens Inputs, and Back returns to the first favourite. Back twice there exits. The clock screensaver remains enabled after five idle minutes.
+
+Inputs now opens a CleanTV picker backed by the platform's VIDEOSOURCE and tvwindow APIs. If TizenBrew does not expose these APIs or the necessary privilege, the picker shows an error and directs you to the remote's Source button. Switching and viewer handoff still require testing on the TV.
+
+For a desktop preview, serve `app/` and open it with `?preview=1`. Preview mode disables device calls and explicitly labels app launch attempts. The production module does not use this query parameter.
+
+Regression checks: `node tests/sources.js` and `node tests/input-ui.js`. These simulate the Tizen APIs and browser DOM; they do not certify TV performance or firmware compatibility. Asset sources are listed in `ASSETS.md`.

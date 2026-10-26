@@ -8,7 +8,7 @@
 var http = require('http');
 var url = require('url');
 
-var VERSION = '1.2.1';
+var VERSION = '1.3.0';
 var HOST = '127.0.0.1';
 var PORT = 8095;
 var errors = [];
@@ -85,6 +85,36 @@ function launch(res, id) {
   }
 }
 
+// Use the platform's input API instead of launching Samsung's private picker app.
+function sources(res, type, number) {
+  function fail(e) {
+    logError('sources', e);
+    send(res, 503, { ok: false, error: (e && (e.message || e.name)) || 'Input API unavailable in TizenBrew' });
+  }
+  try {
+    if (typeof tizen === 'undefined' || !tizen.systeminfo || !tizen.tvwindow) {
+      return fail(new Error('Input API unavailable in TizenBrew'));
+    }
+    tizen.systeminfo.getPropertyValue('VIDEOSOURCE', function (info) {
+      var connected = info.connected || [], disconnected = info.disconnected || [];
+      var all = connected.concat(disconnected), out = [], selected = null;
+      for (var i = 0; i < all.length; i++) {
+        var s = all[i];
+        out.push({ type: s.type, number: s.number, connected: i < connected.length });
+        if (s.type === type && String(s.number) === number) { selected = s; }
+      }
+      if (!type) { return send(res, 200, { ok: true, sources: out }); }
+      if (!selected) { return send(res, 400, { ok: false, error: 'Input no longer available' }); }
+      try {
+        tizen.tvwindow.setSource(selected, function () {
+          // The launcher still covers the screen. Hand over to Samsung's viewer.
+          launch(res, 'org.tizen.tv-viewer');
+        }, fail);
+      } catch (e) { fail(e); }
+    }, fail);
+  } catch (e) { fail(e); }
+}
+
 var server = http.createServer(function (req, res) {
   try {
     var u = url.parse(req.url, true);
@@ -92,6 +122,13 @@ var server = http.createServer(function (req, res) {
       return send(res, 200, { ok: true, version: VERSION, tizen: !!hasTizen(), errors: errors });
     }
     if (u.pathname === '/apps') { return listApps(res); }
+    if (u.pathname === '/sources') { return sources(res); }
+    if (u.pathname === '/source') {
+      if (!u.query.type || !/^\d+$/.test(u.query.number || '')) {
+        return send(res, 400, { ok: false, error: 'missing or invalid input' });
+      }
+      return sources(res, u.query.type, u.query.number);
+    }
     if (u.pathname === '/launch') { return launch(res, u.query.id); }
     send(res, 404, { ok: false, error: 'not found' });
   } catch (e) {

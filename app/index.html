@@ -8,18 +8,20 @@
 </head>
 <body>
   <div id="root">
-    <div class="bg" id="bgA"></div>
-    <div class="bg" id="bgB"></div>
+    <img class="bg on" id="bgA" src="assets/alpine.jpg" alt="">
+    <img class="bg" id="bgB" alt="">
 
+    <div class="scene-shade"></div>
     <div id="stage">
       <div id="glass" class="instant"><div class="sheen"></div></div>
       <header class="top">
+        <div class="brand">Clean<span>TV</span></div>
         <div class="clockbox">
           <div id="greeting" class="greeting"></div>
           <div id="time" class="time">--:--</div>
           <div id="date" class="date"></div>
         </div>
-        <div class="pills" id="pills"></div>
+        <div class="controls"><div class="pills" id="pills"></div><div id="headerTime">--:--</div></div>
       </header>
 
       <section class="hero">
@@ -31,9 +33,13 @@
         <div class="dock" id="dock"></div>
       </section>
 
+      <div id="moreHint" role="button" aria-label="More apps">More apps<img src="assets/logos/down.svg" alt=""></div>
       <section class="grid" id="grid"></section>
     </div>
 
+    <div id="inputs" role="dialog" aria-modal="true" aria-labelledby="inputTitle">
+      <div class="input-panel"><h1 id="inputTitle">Inputs</h1><div id="inputList"></div><p id="inputHint"></p></div>
+    </div>
     <div id="saver"><div id="saverClock"><div id="saverTime"></div><div id="saverDate"></div></div></div>
     <div id="toast" class="toast"></div>
   </div>
