@@ -10,22 +10,28 @@
   <div id="root">
     <div class="bg" id="bgA"></div>
     <div class="bg" id="bgB"></div>
-    <div class="vignette"></div>
 
-    <header class="status">
-      <div id="date" class="date"></div>
-      <div id="time" class="time">--:--</div>
-    </header>
+    <div id="stage">
+      <header class="top">
+        <div class="clockbox">
+          <div id="greeting" class="greeting"></div>
+          <div id="time" class="time">--:--</div>
+          <div id="date" class="date"></div>
+        </div>
+        <div class="pills" id="pills"></div>
+      </header>
 
-    <section class="hero" id="hero">
-      <div class="hero-kicker" id="heroKicker">Watch</div>
-      <div class="hero-title" id="heroTitle"></div>
-      <div class="hero-sub" id="heroSub">Press OK to open</div>
-    </section>
+      <section class="hero">
+        <div class="hero-title" id="heroTitle"></div>
+        <div class="hero-sub" id="heroSub"></div>
+      </section>
 
-    <section class="shelf" id="shelf">
-      <div class="shelf-inner" id="shelfInner"></div>
-    </section>
+      <section class="dock-wrap">
+        <div class="dock" id="dock"></div>
+      </section>
+
+      <section class="grid" id="grid"></section>
+    </div>
 
     <div id="toast" class="toast"></div>
   </div>

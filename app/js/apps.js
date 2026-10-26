@@ -1,13 +1,10 @@
 /* CleanTV app configuration — edit this file to change your home screen.
- *
- * FAVOURITES: the first shelf row, in this order.
- *   ids    — app IDs read from this TV (UN50NU6900); tried in order until one opens.
- *   colors — tile gradient [top-left, bottom-right]; the background tints to colors[0].
- *
- * EXTRAS: shown in "All apps" if the installed-app list can't be read.
- * HIDE:   apps whose names match any of these never appear in "All apps".
+ * App IDs were read from this TV (UN50NU6900); each app's IDs are tried in order.
+ * colors: tile gradient [top-left, bottom-right]; the background glow uses colors[0].
  */
-var CLEANTV_FAVOURITES = [
+
+/* The dock: your favourites, in this order (6 fit). */
+var CLEANTV_DOCK = [
   { label: 'YouTube',     colors: ['#ff3b30', '#b3120a'], ids: ['9Ur5IzDKqV.TizenYouTube', 'com.samsung.tv.cobalt-yt'] },
   { label: 'Netflix',     colors: ['#2a0a0c', '#000000'], text: '#e50914', ids: ['org.tizen.netflix-app', 'RN1MCdNq8t.Netflix'] },
   { label: 'Prime Video', colors: ['#1aa3ff', '#0b4f8a'], ids: ['evKhCgZelL.AmazonIgnitionLauncher2', 'org.tizen.ignition'] },
@@ -16,31 +13,18 @@ var CLEANTV_FAVOURITES = [
   { label: 'Hulu',        colors: ['#1ce783', '#0a7a45'], text: '#0b1d12', ids: ['LBUAQX1exg.Hulu'] }
 ];
 
-var CLEANTV_EXTRAS = [
-  { label: 'Peacock',      ids: ['gzcc4LRFBF.Peacock'] },
-  { label: 'YouTube TV',   ids: ['com.samsung.tv.cobalt-yttv'] },
-  { label: 'YouTube Kids', ids: ['com.samsung.tv.cobalt-ytkids'] },
-  { label: 'Live TV',      ids: ['org.tizen.tv-viewer'] },
-  { label: 'Internet',     ids: ['org.tizen.browser'] },
-  { label: 'Gallery',      ids: ['com.samsung.tv.mycontents'] }
+/* The grid below the dock (press Down). Only these apps appear — add or remove lines to change it. */
+var CLEANTV_GRID = [
+  { label: 'Peacock',      colors: ['#2b2b2f', '#0d0d10'], ids: ['gzcc4LRFBF.Peacock'] },
+  { label: 'YouTube TV',   colors: ['#ff453a', '#7a0d07'], ids: ['com.samsung.tv.cobalt-yttv'] },
+  { label: 'YouTube Kids', colors: ['#ff6b5e', '#b0261b'], ids: ['com.samsung.tv.cobalt-ytkids'] },
+  { label: 'Live TV',      colors: ['#5e5ce6', '#2b2a7a'], ids: ['org.tizen.tv-viewer'] },
+  { label: 'Internet',     colors: ['#30b0c7', '#11505c'], ids: ['org.tizen.browser'] },
+  { label: 'Gallery',      colors: ['#ff9f0a', '#8a4b00'], ids: ['com.samsung.tv.mycontents'] }
 ];
 
-/* Always shown at the start of "All apps". */
-var CLEANTV_ALWAYS = [
-  { label: 'Live TV', ids: ['org.tizen.tv-viewer'] }
-];
-
-/* Friendlier names for apps whose installed names are raw IDs. */
-var CLEANTV_RENAME = {
-  'YoutubeKids': 'YouTube Kids',
-  'YoutubeTV': 'YouTube TV',
-  'org.tizen.mycontents': 'Gallery',
-  'Peacock TV': 'Peacock'
-};
-
-var CLEANTV_HIDE = [
-  /cleantv/i, /tizenbrew/i, /samsung\s*tv\s*plus/i, /promotion/i, /e-?manual/i,
-  /googleplaymovie/i, /airplay/i,
-  /service/i, /daemon/i, /widget/i, /setting/i, /test/i, /^app$/i, /^ui-application$/i,
-  /keyboard/i, /player/i, /chromium/i, /popup/i, /^\s*$/
+/* Small buttons at the top right (press Up from the dock). */
+var CLEANTV_PILLS = [
+  { label: 'Live TV', colors: ['#5e5ce6'], ids: ['org.tizen.tv-viewer'] },
+  { label: 'Inputs',  colors: ['#8e8e93'], ids: ['org.tizen.SMSourceAPP'] }
 ];

@@ -1,18 +1,22 @@
-/* CleanTV launcher — "Shelf" theme. ES5 only (Tizen 4 / 2018 Samsung TVs). */
+/* CleanTV launcher — ES5 only (Tizen 4 / 2018 Samsung TVs), running as a TizenBrew module.
+ * Layout: greeting + clock, top-right pills, big title of the focused app, a dock of
+ * favourites, and a grid below that slides up when you press Down.
+ * App launching goes through service.js (TizenBrew's Node service) on localhost:8095.
+ */
 (function () {
   'use strict';
 
   var KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, BACK: 10009, ESC: 27 };
-  var PER_LINE = 6;
+  var PER_ROW = 6;
   var SERVICE = 'http://127.0.0.1:8095';
 
-  var lines = [];       // lines[i] = { el: blockEl, kicker: 'Watch', cells: [cell] }
-  var focus = { line: 0, col: 0 };
+  // rows[0] = pills (top right), rows[1] = dock, rows[2..] = grid rows
+  var rows = [];
+  var focus = { row: 1, col: 0 };
   var bgFront = 'A';
   var lastTint = '';
   var toastTimer = null;
 
-  // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -24,61 +28,45 @@
     toastTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
   }
 
-  function isHidden(name) {
-    for (var i = 0; i < CLEANTV_HIDE.length; i++) {
-      if (CLEANTV_HIDE[i].test(name)) { return true; }
-    }
-    return false;
-  }
-
-  var PALETTE = [
-    ['#5e5ce6', '#2b2a7a'], ['#30b0c7', '#11505c'], ['#ff9f0a', '#8a4b00'],
-    ['#bf5af2', '#55207a'], ['#64d2ff', '#1b5f80'], ['#ff6482', '#8a1f36'],
-    ['#32d74b', '#11602a'], ['#8e8e93', '#38383c'], ['#ffd60a', '#8a6f00']
-  ];
-  function colorsFor(name) {
-    var h = 0;
-    for (var i = 0; i < name.length; i++) { h = (h * 31 + name.charCodeAt(i)) % 9973; }
-    return PALETTE[h % PALETTE.length];
-  }
-
   // ---------- clock ----------
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
   function tick() {
     var d = new Date();
     var h = d.getHours();
     var h12 = h % 12 === 0 ? 12 : h % 12;
-    $('time').textContent = h12 + ':' + pad(d.getMinutes()) + (h < 12 ? ' AM' : ' PM');
+    $('time').textContent = h12 + ':' + pad(d.getMinutes());
     $('date').textContent = DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
+    $('greeting').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   }
 
-  // ---------- background tint ----------
+  // ---------- ambient glow ----------
   function tint(color) {
     if (color === lastTint) { return; }
     lastTint = color;
     var next = bgFront === 'A' ? 'B' : 'A';
     var el = $('bg' + next);
     el.style.background =
-      'radial-gradient(ellipse 1500px 900px at 72% 18%, ' + color + ' 0%, rgba(8,9,11,0) 70%), ' +
-      'radial-gradient(ellipse 900px 700px at 8% 0%, ' + color + ' 0%, rgba(8,9,11,0) 75%), #08090b';
+      'radial-gradient(ellipse 1300px 760px at 30% 38%, ' + color + ' 0%, rgba(0,0,0,0) 72%), ' +
+      'radial-gradient(ellipse 900px 600px at 85% 10%, ' + color + ' 0%, rgba(0,0,0,0) 75%), #000';
+    el.style.opacity = '';
     el.className = 'bg on';
     $('bg' + bgFront).className = 'bg';
     bgFront = next;
   }
 
-  // ---------- build ----------
-  function makeCell(item) {
+  // ---------- building ----------
+  function makeTile(item) {
     var cell = document.createElement('div');
-    cell.className = 'cell' + (item.missing ? ' missing' : '');
+    cell.className = 'cell';
     var tile = document.createElement('div');
     tile.className = 'tile';
-    tile.style.background = 'linear-gradient(135deg, ' + item.colors[0] + ' 0%, ' + item.colors[1] + ' 100%)';
+    tile.style.background = 'linear-gradient(135deg, ' + item.colors[0] + ' 0%, ' + (item.colors[1] || item.colors[0]) + ' 100%)';
     var gloss = document.createElement('div');
     gloss.className = 'gloss';
     var word = document.createElement('div');
-    word.className = 'word' + (item.label.length > 11 ? ' long' : '');
+    word.className = 'word' + (item.label.length > 10 ? ' long' : '');
     word.textContent = item.label;
     if (item.text) { word.style.color = item.text; }
     tile.appendChild(gloss);
@@ -88,75 +76,108 @@
     label.textContent = item.label;
     cell.appendChild(tile);
     cell.appendChild(label);
-    item.el = cell;
     return cell;
   }
 
-  function addLine(container, kicker, labelText, items) {
-    var block = document.createElement('div');
-    if (labelText) {
-      var lab = document.createElement('div');
-      lab.className = 'line-label';
-      lab.textContent = labelText;
-      block.appendChild(lab);
-    }
-    var row = document.createElement('div');
-    row.className = 'line';
-    for (var i = 0; i < items.length; i++) { row.appendChild(makeCell(items[i])); }
-    block.appendChild(row);
-    container.appendChild(block);
-    lines.push({ el: block, kicker: kicker, cells: items });
+  function entry(src, el) {
+    return { label: src.label, colors: src.colors, ids: src.ids.slice(0), el: el };
   }
 
-  // installed: [{id, name}] from the service, or null if the list couldn't be read.
-  function render(installed) {
-    var inner = $('shelfInner');
-    inner.innerHTML = '';
-    lines.length = 0;
+  function build() {
+    var i, cell, pill, rowEl;
 
-    var usedIds = {};
-    var favs = [];
-    var i, j, k, f;
-
-    for (i = 0; i < CLEANTV_FAVOURITES.length; i++) {
-      f = CLEANTV_FAVOURITES[i];
-      for (k = 0; k < f.ids.length; k++) { usedIds[f.ids[k]] = true; }
-      favs.push({ label: f.label, colors: f.colors, text: f.text, ids: f.ids.slice(0), missing: false });
+    // pills
+    var pillsBox = $('pills');
+    var pills = [];
+    for (i = 0; i < CLEANTV_PILLS.length; i++) {
+      pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = CLEANTV_PILLS[i].label;
+      pillsBox.appendChild(pill);
+      pills.push(entry(CLEANTV_PILLS[i], pill));
     }
-    addLine(inner, 'Watch', '', favs);
+    rows.push(pills);
 
-    var others = [];
-    if (installed) {
-      var seen = {};
-      for (i = 0; i < installed.length; i++) {
-        var a = installed[i];
-        var name = CLEANTV_RENAME[a.name] || a.name;
-        var key = name.toLowerCase();
-        if (usedIds[a.id] || seen[key] || isHidden(a.name)) { continue; }
-        seen[key] = true;
-        others.push({ label: name, colors: colorsFor(name), ids: [a.id], missing: false });
+    // dock
+    var dockBox = $('dock');
+    var dock = [];
+    for (i = 0; i < CLEANTV_DOCK.length; i++) {
+      cell = makeTile(CLEANTV_DOCK[i]);
+      dockBox.appendChild(cell);
+      var e = entry(CLEANTV_DOCK[i], cell);
+      e.text = CLEANTV_DOCK[i].text;
+      dock.push(e);
+    }
+    rows.push(dock);
+
+    // grid
+    var gridBox = $('grid');
+    if (CLEANTV_GRID.length) {
+      var title = document.createElement('div');
+      title.className = 'grid-title';
+      title.textContent = 'More apps';
+      gridBox.appendChild(title);
+    }
+    for (i = 0; i < CLEANTV_GRID.length; i += PER_ROW) {
+      rowEl = document.createElement('div');
+      rowEl.className = 'grid-row';
+      var row = [];
+      var slice = CLEANTV_GRID.slice(i, i + PER_ROW);
+      for (var j = 0; j < slice.length; j++) {
+        cell = makeTile(slice[j]);
+        rowEl.appendChild(cell);
+        row.push(entry(slice[j], cell));
       }
+      // keep a short last row left-aligned under the dock columns
+      for (var sp = slice.length; sp < PER_ROW; sp++) {
+        var spacer = document.createElement('div');
+        spacer.className = 'spacer';
+        rowEl.appendChild(spacer);
+      }
+      gridBox.appendChild(rowEl);
+      rows.push(row);
+    }
+  }
+
+  // ---------- focus ----------
+  function current() { var r = rows[focus.row]; return r ? r[focus.col] : null; }
+
+  function setFocus(row, col) {
+    if (!rows[row] || !rows[row].length) { return; }
+    if (col < 0) { col = 0; }
+    if (col > rows[row].length - 1) { col = rows[row].length - 1; }
+    var prev = current();
+    if (prev) { prev.el.className = prev.el.className.replace(' focused', ''); }
+    focus.row = row; focus.col = col;
+    var item = current();
+    item.el.className += ' focused';
+
+    $('heroTitle').textContent = item.label;
+    $('heroSub').textContent = 'Press OK to open';
+    tint(item.colors[0]);
+
+    // Grid rows slide the whole stage up; the dock and pills keep it at rest.
+    $('root').className = row >= 2 ? 'browsing' : '';
+    if (row >= 2) {
+      var g = $('grid');
+      var shift = 520 + Math.max(0, row - 2) * 222;
+      g.parentNode.style.webkitTransform = 'translateY(-' + shift + 'px)';
+      g.parentNode.style.transform = 'translateY(-' + shift + 'px)';
     } else {
-      for (j = 0; j < CLEANTV_EXTRAS.length; j++) {
-        var x = CLEANTV_EXTRAS[j];
-        others.push({ label: x.label, colors: colorsFor(x.label), ids: x.ids.slice(0), missing: false });
-      }
+      $('stage').style.webkitTransform = '';
+      $('stage').style.transform = '';
     }
-    others.sort(function (x, y) { return x.label.toLowerCase() < y.label.toLowerCase() ? -1 : 1; });
-    for (j = CLEANTV_ALWAYS.length - 1; j >= 0; j--) {
-      var al = CLEANTV_ALWAYS[j];
-      others.unshift({ label: al.label, colors: colorsFor(al.label), ids: al.ids.slice(0), missing: false });
-    }
-
-    for (i = 0; i < others.length; i += PER_LINE) {
-      addLine(inner, 'All apps', i === 0 ? 'All apps' : '', others.slice(i, i + PER_LINE));
-    }
-
-    var l = Math.min(focus.line, lines.length - 1);
-    setFocus(l, focus.col, true);
   }
 
-  // ---------- talking to the CleanTV service (service.js) ----------
+  // Map a column between rows of different widths (pills have 2 items, others 6).
+  function mapCol(fromRow, toRow, col) {
+    var a = rows[fromRow].length, b = rows[toRow].length;
+    if (toRow === 0) { return b - 1; }               // into the pills: rightmost
+    if (fromRow === 0) { return b - 1; }              // out of the pills: rightmost tile
+    return Math.min(col, b - 1) + (a > b ? 0 : 0);
+  }
+
+  // ---------- service ----------
   function getJSON(path, done) {
     var xhr = new XMLHttpRequest();
     var finished = false;
@@ -175,27 +196,6 @@
     } catch (e) { finish(e.message); }
   }
 
-  // ---------- app discovery ----------
-  var discoverTries = 0;
-  function discover() {
-    getJSON('/apps', function (err, data) {
-      if (err || !data || !data.apps) {
-        // The service may still be starting right after TizenBrew opens: retry a few times.
-        if (discoverTries++ < 3) { setTimeout(discover, 1500); }
-        if (!lines.length) { render(null); }
-        return;
-      }
-      var apps = [];
-      for (var i = 0; i < data.apps.length; i++) {
-        var a = data.apps[i];
-        if (a.show === false || !a.name) { continue; }
-        apps.push({ id: a.id, name: a.name });
-      }
-      render(apps);
-    });
-  }
-
-  // ---------- launching ----------
   function launch(item) {
     var ids = item.ids, k = 0;
     function attempt(lastErr) {
@@ -203,8 +203,7 @@
         toast(item.label + ' couldn’t open' + (lastErr ? ' (' + lastErr + ')' : ''));
         return;
       }
-      var id = ids[k++];
-      getJSON('/launch?id=' + encodeURIComponent(id), function (err, data) {
+      getJSON('/launch?id=' + encodeURIComponent(ids[k++]), function (err, data) {
         if (err || !data || !data.ok) { attempt(err || 'launch failed'); }
       });
     }
@@ -212,60 +211,29 @@
     attempt();
   }
 
-  // ---------- focus ----------
-  function current() {
-    var ln = lines[focus.line];
-    return ln ? ln.cells[focus.col] : null;
-  }
-
-  function setFocus(line, col, force) {
-    if (!lines[line] || !lines[line].cells.length) { return; }
-    if (col < 0) { col = 0; }
-    if (col > lines[line].cells.length - 1) { col = lines[line].cells.length - 1; }
-    var prev = current();
-    if (prev && prev.el) { prev.el.className = prev.el.className.replace(' focused', ''); }
-    focus.line = line; focus.col = col;
-    var item = current();
-    item.el.className += ' focused';
-
-    // Hero
-    $('heroKicker').textContent = lines[line].kicker;
-    $('heroTitle').textContent = item.label;
-    $('heroSub').textContent = item.missing ? 'Not found on this TV' : 'Press OK to open';
-    tint(item.colors[0]);
-
-    // Scroll the shelf so the focused line is visible (line 0 stays at top).
-    var y = line === 0 ? 0 : lines[line].el.offsetTop;
-    var inner = $('shelfInner');
-    inner.style.webkitTransform = 'translateY(' + (-y) + 'px)';
-    inner.style.transform = 'translateY(' + (-y) + 'px)';
-  }
-
+  // ---------- keys ----------
   function onKey(e) {
-    var k = e.keyCode, l = focus.line, c = focus.col;
-    if (k === KEY.LEFT) { setFocus(l, c - 1); }
-    else if (k === KEY.RIGHT) { setFocus(l, c + 1); }
-    else if (k === KEY.DOWN) { if (l + 1 < lines.length) { setFocus(l + 1, c); } }
-    else if (k === KEY.UP) { if (l > 0) { setFocus(l - 1, c); } }
+    var k = e.keyCode, r = focus.row, c = focus.col;
+    if (k === KEY.LEFT) { setFocus(r, c - 1); }
+    else if (k === KEY.RIGHT) { setFocus(r, c + 1); }
+    else if (k === KEY.DOWN) { if (r + 1 < rows.length) { setFocus(r + 1, mapCol(r, r + 1, c)); } }
+    else if (k === KEY.UP) { if (r > 0) { setFocus(r - 1, mapCol(r, r - 1, c)); } }
     else if (k === KEY.ENTER) { if (current()) { launch(current()); } }
     else if (k === KEY.BACK || k === KEY.ESC) {
-      // First Back jumps to the first tile; Back from there is left to TizenBrew.
-      if (l === 0 && c === 0) { return; }
-      setFocus(0, 0);
+      // Back returns to the first dock tile; Back from there is left to TizenBrew.
+      if (r === 1 && c === 0) { return; }
+      setFocus(1, 0);
     }
     else { return; }
     e.preventDefault();
   }
 
-  // ---------- boot ----------
   function boot() {
+    build();
     tick();
     setInterval(tick, 10000);
     document.addEventListener('keydown', onKey);
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) { discover(); tick(); }
-    });
-    discover();
+    setFocus(1, 0);
   }
 
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); }
