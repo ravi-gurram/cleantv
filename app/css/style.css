@@ -1,0 +1,115 @@
+/* CleanTV "Shelf" theme — 1920x1080, Tizen 4 (Chromium ~56): flexbox + transforms, no backdrop-filter, no CSS grid. */
+html, body {
+  margin: 0; padding: 0;
+  width: 1920px; height: 1080px;
+  overflow: hidden;
+  background: #08090b;
+  color: #f4f5f7;
+  font-family: "SamsungOne", "TizenSans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+/* Ambient background that takes the colour of the focused app (two layers cross-fade). */
+.bg {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  opacity: 0;
+  -webkit-transition: opacity 600ms ease; transition: opacity 600ms ease;
+}
+.bg.on { opacity: 1; }
+.vignette {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  background:
+    linear-gradient(180deg, rgba(8,9,11,0) 0%, rgba(8,9,11,0.35) 45%, rgba(8,9,11,0.92) 100%);
+}
+
+/* Status bar */
+.status {
+  position: absolute; top: 56px; right: 110px; left: 110px;
+  display: flex; justify-content: flex-end; align-items: baseline;
+  font-size: 30px; font-weight: 400; color: rgba(255,255,255,0.85);
+}
+.status .date { margin-right: 28px; color: rgba(255,255,255,0.6); }
+.status .time { font-weight: 500; }
+
+/* Hero */
+.hero { position: absolute; left: 110px; top: 190px; width: 1300px; }
+.hero-kicker {
+  font-size: 26px; font-weight: 600; letter-spacing: 5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.6); margin-bottom: 18px;
+}
+.hero-title {
+  font-size: 128px; font-weight: 700; letter-spacing: -3px; line-height: 1.02;
+  text-shadow: 0 8px 40px rgba(0,0,0,0.35);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hero-sub { font-size: 32px; color: rgba(255,255,255,0.7); margin-top: 22px; font-weight: 400; }
+
+/* Shelf */
+.shelf { position: absolute; left: 0; right: 0; top: 590px; bottom: 0; overflow: hidden; }
+.shelf-inner {
+  position: absolute; left: 110px; top: 30px; width: 1700px;
+  -webkit-transition: -webkit-transform 320ms cubic-bezier(.2,.8,.2,1);
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1);
+}
+.line { display: flex; height: 250px; }
+.line-label {
+  font-size: 24px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase;
+  color: rgba(255,255,255,0.5); height: 50px;
+}
+
+/* Tiles */
+.cell { width: 250px; margin-right: 40px; flex: 0 0 auto; }
+.cell:last-child { margin-right: 0; }
+.tile {
+  position: relative; width: 250px; height: 150px;
+  border-radius: 22px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  -webkit-transition: -webkit-transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms;
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms;
+}
+.tile .word {
+  position: relative; z-index: 2;
+  color: #fff; font-weight: 700; font-size: 34px; letter-spacing: -0.5px;
+  text-align: center; padding: 0 18px; line-height: 1.05;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+.tile .word.long { font-size: 26px; }
+/* Glossy highlight: a soft diagonal sheen across the top */
+.tile .gloss {
+  position: absolute; z-index: 1; left: -40%; top: -120%;
+  width: 180%; height: 200%;
+  background: linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 38%, rgba(255,255,255,0) 50%);
+  opacity: 0.6;
+  -webkit-transition: -webkit-transform 600ms ease, opacity 300ms; transition: transform 600ms ease, opacity 300ms;
+}
+.label {
+  margin-top: 18px; text-align: center;
+  font-size: 22px; color: rgba(255,255,255,0);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  -webkit-transition: color 200ms; transition: color 200ms;
+}
+.cell.missing .tile { opacity: 0.4; }
+
+.cell.focused .tile {
+  -webkit-transform: translateY(-12px) scale(1.14);
+  transform: translateY(-12px) scale(1.14);
+  box-shadow: 0 34px 60px rgba(0,0,0,0.6), 0 0 0 3px rgba(255,255,255,0.9);
+}
+.cell.focused .tile .gloss {
+  opacity: 1;
+  -webkit-transform: translate(18%, 30%); transform: translate(18%, 30%);
+}
+.cell.focused .label { color: rgba(255,255,255,0.95); }
+
+/* Toast */
+.toast {
+  position: absolute; right: 110px; top: 120px;
+  padding: 16px 28px; border-radius: 40px;
+  background: rgba(40,42,48,0.92);
+  font-size: 24px; color: #f4f5f7;
+  opacity: 0;
+  -webkit-transition: opacity 200ms; transition: opacity 200ms;
+}
+.toast.show { opacity: 1; }

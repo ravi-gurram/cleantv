@@ -1,0 +1,11 @@
+{
+  "name": "cleantv",
+  "version": "1.0.0",
+  "description": "CleanTV: a clean, ad-free home screen for Samsung TVs, running as a TizenBrew app module.",
+  "packageType": "app",
+  "appName": "CleanTV",
+  "appPath": "app/index.html",
+  "serviceFile": "service.js",
+  "keys": [],
+  "license": "MIT"
+}
