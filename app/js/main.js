@@ -60,10 +60,20 @@
     image.src = CLEANTV_BACKGROUNDS[nextIndex];
   }
   function fitScreen() {
-    var scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-    var t = 'translate(-50%, -50%) scale(' + scale + ')';
-    $('root').style.webkitTransform = t;
-    $('root').style.transform = t;
+    // Use the CSS layout viewport, not the physical panel or a stale window size.
+    // Pixel offsets and a top-left origin avoid percent-translation differences
+    // in the older Samsung engine when the 1920 design is scaled to 1280x720.
+    var viewport = document.documentElement || {};
+    var width = viewport.clientWidth || window.innerWidth || 1920;
+    var height = viewport.clientHeight || window.innerHeight || 1080;
+    var scale = Math.min(width / 1920, height / 1080);
+    var root = $('root');
+    root.style.left = Math.max(0, (width - 1920 * scale) / 2) + 'px';
+    root.style.top = Math.max(0, (height - 1080 * scale) / 2) + 'px';
+    root.style.webkitTransformOrigin = '0 0';
+    root.style.transformOrigin = '0 0';
+    root.style.webkitTransform = 'scale(' + scale + ')';
+    root.style.transform = 'scale(' + scale + ')';
   }
 
   // ---------- building ----------
@@ -433,6 +443,8 @@
   function boot() {
     fitScreen();
     window.addEventListener('resize', fitScreen);
+    window.addEventListener('load', fitScreen);
+    setTimeout(fitScreen, 250);
     if (typeof CLEANTV_BACKGROUNDS !== 'undefined' && CLEANTV_BACKGROUNDS.length) {
       $('bgA').src = CLEANTV_BACKGROUNDS[0];
     }
@@ -447,7 +459,7 @@
     document.addEventListener('keydown', onKey);
     // Coming back from another app counts as activity.
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) { hideSaver(); resetIdle(); tick(); addInstalledApps(); }
+      if (!document.hidden) { fitScreen(); hideSaver(); resetIdle(); tick(); addInstalledApps(); }
     });
     setFocus(1, 0);
     resetIdle();
